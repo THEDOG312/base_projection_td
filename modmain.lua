@@ -216,12 +216,6 @@ AddClassPostConstruct("components/placer", function(self)
     local old_Placer_IsAxisAlignedPlacement = self.IsAxisAlignedPlacement
     self.IsAxisAlignedPlacement = function(self, ...)
         if IsBSPJPlayEnable() and GLOBAL.IsBSPJPlayHelperReady() then
-            if self.axisalignedhelpers then
-                if self.axisalignedhelpers.parent:IsValid() then
-                    self.axisalignedhelpers.parent:Remove()
-                end
-                self.axisalignedhelpers = nil
-            end
             return false
         end
         return old_Placer_IsAxisAlignedPlacement(self, ...)

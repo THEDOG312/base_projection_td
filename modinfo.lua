@@ -6,7 +6,7 @@ description = [[
 摆放时鼠标会自动吸附到投影点上，可以轻松的复原基地
 ]]
 author = "NoMu，冰冰羊"
-version = "2.0.4"
+version = "2.0.5"
 
 folder_name = folder_name or "base_projection"
 if not folder_name:find("workshop-") then
