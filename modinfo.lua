@@ -4,9 +4,10 @@ description = [[
 选完实体后，点击面板中的“保存”按钮即可保存数据
 按F2开始基地投影，选定中心后，点击面板中的“打开列表”按钮，选择要投影的数据即可
 摆放时鼠标会自动吸附到投影点上，可以轻松的复原基地
+理论上兼容所有模组
 ]]
-author = "NoMu，冰冰羊"
-version = "2.0.5"
+author = "NoMu，冰冰羊，THEDOG"
+version = "2.0.6"
 
 folder_name = folder_name or "base_projection"
 if not folder_name:find("workshop-") then
