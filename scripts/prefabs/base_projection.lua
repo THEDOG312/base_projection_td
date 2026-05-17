@@ -87,16 +87,27 @@ local function anchor_fn()
                 proxy:AddTag("NOCLICK")
                 proxy:AddTag("CLASSIFIED")
                 proxy.persists = false
+                
                 -- 设置投影的绿色
                 if proxy.AnimState then
                     proxy.AnimState:SetMultColour(0, 1, 0, 0.8)
+
+                    local current_bank = proxy.AnimState:GetCurrentBankName()
                     if item.anim and item.anim ~= "" then
+                        if item.bank and item.bank ~= current_bank then
+                            -- 如果状态不一致，强制覆盖为存档记录的 Build 和 Bank
+                            if item.build then
+                                proxy.AnimState:SetBuild(item.build)
+                            end
+                            proxy.AnimState:SetBank(item.bank)
+                        end
                         proxy.AnimState:PlayAnimation(item.anim)
                     end
                 end
-                -- 将生成的作为子节点绑在 Anchor 上
-                proxy.entity:SetParent(self.entity)
-                proxy.Transform:SetPosition(0, 0, 0)
+                
+                -- 同步坐标
+                local px, py, pz = self.Transform:GetWorldPosition()
+                proxy.Transform:SetPosition(px, py, pz)
 
                 self.proxy_ent = proxy
             end
@@ -125,15 +136,11 @@ local function anchor_fn()
             self.proxy_ent.Transform:SetScale(scale[1], scale[2], scale[3])
             
             if item.rotation and item.rotation ~= 0 then
-                if math.fmod(item.rotation, 60) == 0 then
-                    self.proxy_ent.Transform:SetSixFaced()
-                else
-                    self.proxy_ent.Transform:SetEightFaced()
-                end
                 self.proxy_ent.Transform:SetRotation(item.rotation or 0)
             end
             
-            if item.layer and item.layer ~= 6 and self.proxy_ent.AnimState then
+            -- 修复 Layer 压扁问题
+            if item.layer and item.layer == 5 and self.proxy_ent.AnimState then
                 self.proxy_ent.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)
                 self.proxy_ent.AnimState:SetLayer(item.layer)
                 self.proxy_ent.AnimState:SetSortOrder(5)
@@ -186,6 +193,9 @@ local function anchor_fn()
             dump:Remove()
             if valid_pos then
                 self.Transform:SetPosition(x, y, z)
+                if self.proxy_ent and self.proxy_ent:IsValid() then
+                    self.proxy_ent.Transform:SetPosition(x, y, z)
+                end
                 self:DoTaskInTime(0, function()
                     local entities = TheSim:GetEntitiesAtScreenPoint(TheSim:GetScreenPos(x, y, z))
                     local valid_anim = false
@@ -200,6 +210,9 @@ local function anchor_fn()
                     end
                     valid_prefab[item.prefab] = valid_anim
                     self.Transform:SetPosition(dx, dy, dz)
+                    if self.proxy_ent and self.proxy_ent:IsValid() then
+                        self.proxy_ent.Transform:SetPosition(dx, dy, dz)
+                    end
                 end)
             else
                 self:_valid(dx, dy, dz, try_time + 1)
@@ -225,6 +238,9 @@ local function anchor_fn()
 
     function inst:UpdatePos(x, y, z)
         self.Transform:SetPosition(x, y, z)
+        if self.proxy_ent and self.proxy_ent:IsValid() then
+            self.proxy_ent.Transform:SetPosition(x, y, z)
+        end
     end
 
     -- 防止内存泄漏
