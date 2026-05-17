@@ -458,7 +458,7 @@ local function play_helper_fn()
             for anchor in pairs(self.anchors) do
                 if anchor.record_spacing then
                     anchor.spacing_color = (anchor.record_spacing - min_spacing) / (max_spacing - min_spacing) * 0.9 + 0.1
-                    anchor.AnimState:SetAddColour(anchor.spacing_color, 0, 0, 0)
+                    anchor.AnimState:SetAddColour(0, 0, 0, 0)
                     anchor.label:Enable(true)
                     if anchor.record_name then
                         anchor.label:SetText(anchor.record_name .. '\n' .. tostring(anchor.record_spacing))
