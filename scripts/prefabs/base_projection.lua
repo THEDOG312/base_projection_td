@@ -113,12 +113,7 @@ local function anchor_fn()
                 proxy:AddTag("NOCLICK")
                 proxy:AddTag("CLASSIFIED")
                 proxy.persists = false
-                
-                proxy:AddTag("FX")
-                proxy:AddTag("NOCLICK")
-                proxy:AddTag("CLASSIFIED")
-                proxy.persists = false
-                
+
                 -- 设置投影的绿色
                 if proxy.AnimState then
                     proxy.AnimState:SetMultColour(0, 1, 0, 0.8)
