@@ -548,7 +548,7 @@ GLOBAL.BSPJClearPreviews = function()
     _act_type = nil
     if GLOBAL.IsBSPJPlayHelperReady() then
         for anchor in pairs(GLOBAL.BASE_PLAY_HELPER.anchors) do
-            anchor.AnimState:SetAddColour(anchor.spacing_color or 0, 0, 0, 0)
+            anchor.AnimState:SetAddColour(0, 0, 0, 0)
         end
     end
 end
@@ -662,8 +662,8 @@ local function SpawnPreviews(prefab, act_type, prefab_inst)
                                 table.insert(preview_prefabs, placer)
                             end
                         end
-                    else
-                        anchor.AnimState:SetAddColour(1, 0, 0, 1)
+                    --else
+                    --anchor.AnimState:SetAddColour(1, 0, 0, 1)
                     end
                 end
             end
@@ -1001,13 +1001,14 @@ end
 
 local function OnUpdateAnchorPos()
     if not IsBSPJPlayEnable() or not GLOBAL.IsBSPJPlayHelperReady() then
-        anchor_pos = nil
-        if last_best_anchor and last_best_anchor:IsValid() then
-            last_best_anchor.AnimState:SetAddColour(last_best_anchor.spacing_color or 0, 0, 0, 0)
+            anchor_pos = nil
+            if last_best_anchor and last_best_anchor:IsValid() then
+                -- last_best_anchor.AnimState:SetAddColour(last_best_anchor.spacing_color or 0, 0, 0, 0)
+                last_best_anchor.AnimState:SetAddColour(0, 0, 0, 0)
+            end
+            last_best_anchor = nil
+            return
         end
-        last_best_anchor = nil
-        return
-    end
     local best_anchor
     local best_d = 1
     local mouse_pos = oldGetWorldPosition(TheInput)
@@ -1029,8 +1030,9 @@ local function OnUpdateAnchorPos()
     --end
 
     if last_best_anchor ~= best_anchor and last_best_anchor and last_best_anchor:IsValid() then
-        last_best_anchor.AnimState:SetAddColour(last_best_anchor.spacing_color or 0, 0, 0, 0)
-    end
+            -- last_best_anchor.AnimState:SetAddColour(last_best_anchor.spacing_color or 0, 0, 0, 0)
+            last_best_anchor.AnimState:SetAddColour(0, 0, 0, 0)
+        end
     if best_anchor ~= nil and best_anchor:IsValid() then
         anchor_pos = best_anchor:GetPosition()
         if best_anchor ~= last_best_anchor then
