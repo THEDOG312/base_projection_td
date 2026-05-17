@@ -387,7 +387,7 @@ local function PlanningAtPos(act_type, px, pz)
         placer = ThePlayer.replica.inventory:GetActiveItem()
         if placer and placer.prefab then
             prefab = placer.prefab
-            name = placer:GetDisplayName()
+            name = placer.GetBasicDisplayName and placer:GetBasicDisplayName() or placer:GetDisplayName()
             no_snap = true
         end
     end

@@ -68,7 +68,7 @@ local function anchor_fn()
         self.AnimState:SetBank("unknown_prefab")
         _RealAnimState:SetMultColour(0, 0, 0, 0) 
 
-        --  清理上一次的
+        -- 清理上一次的
         if self.proxy_ent and self.proxy_ent:IsValid() then
             self.proxy_ent:Remove()
             self.proxy_ent = nil
@@ -79,18 +79,40 @@ local function anchor_fn()
             local proxy = SpawnPrefab(item.prefab)
             if proxy and proxy:IsValid() then
                 
-                -- 掐断假实体身上的所有自带任务和事件
+                -- 去除定时任务和唤醒事件
                 if proxy.CancelAllPendingTasks then
                     proxy:CancelAllPendingTasks()
                 end
-                -- 移除睡眠/唤醒事件
                 proxy.OnEntityWake = nil
                 proxy.OnEntitySleep = nil
 
-                -- 去除物理碰撞和网络组件
+                -- 去除StateGraph
+                if proxy.ClearStateGraph then
+                    proxy:ClearStateGraph()
+                end
+
+                -- 去除AI 逻辑
+                if proxy.SetBrain then
+                    proxy:SetBrain(nil)
+                end
+
+                -- 禁音处理
+                if proxy.SoundEmitter then
+                    proxy.SoundEmitter:KillAllSounds()
+                end
+
+                -- 去除物理碰撞、光源和地图图标
                 if proxy.Physics then proxy.Physics:SetActive(false) end
                 if proxy.Light then proxy.Light:Enable(false) end
                 if proxy.MiniMapEntity then proxy.MiniMapEntity:SetEnabled(false) end
+                
+                proxy:RemoveTag("iswet")
+                proxy:RemoveTag("wet")
+
+                proxy:AddTag("FX")
+                proxy:AddTag("NOCLICK")
+                proxy:AddTag("CLASSIFIED")
+                proxy.persists = false
                 
                 proxy:AddTag("FX")
                 proxy:AddTag("NOCLICK")
@@ -252,7 +274,6 @@ local function anchor_fn()
         end
     end
 
-    -- 防止内存泄漏
     inst:ListenForEvent("onremove", function(_inst)
         if _inst.proxy_ent and _inst.proxy_ent:IsValid() then
             _inst.proxy_ent:Remove()
@@ -389,8 +410,10 @@ local function record_helper_fn()
                 local sx, sy, sz = anchor.Transform:GetScale()
                 local rotation = anchor.Transform:GetFacingRotation()
                 local layer = anchor.AnimState:GetLayer()
+                local clean_name = anchor.GetBasicDisplayName and anchor:GetBasicDisplayName() or anchor:GetDisplayName()
+
                 table.insert(record, {
-                    name = anchor:GetDisplayName(), prefab = anchor.prefab, x = x, y = y, z = z,
+                    name = clean_name, prefab = anchor.prefab, x = x, y = y, z = z,
                     build = build, bank = bank, anim = anim, scale = { sx, sy, sz },
                     rotation = rotation, layer = layer
                 })
