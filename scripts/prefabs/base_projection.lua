@@ -78,6 +78,15 @@ local function anchor_fn()
         if Prefabs and Prefabs[item.prefab] then
             local proxy = SpawnPrefab(item.prefab)
             if proxy and proxy:IsValid() then
+                
+                -- 掐断假实体身上的所有自带任务和事件
+                if proxy.CancelAllPendingTasks then
+                    proxy:CancelAllPendingTasks()
+                end
+                -- 移除睡眠/唤醒事件
+                proxy.OnEntityWake = nil
+                proxy.OnEntitySleep = nil
+
                 -- 去除物理碰撞和网络组件
                 if proxy.Physics then proxy.Physics:SetActive(false) end
                 if proxy.Light then proxy.Light:Enable(false) end
