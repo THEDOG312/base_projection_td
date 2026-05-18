@@ -119,15 +119,47 @@ local function anchor_fn()
                     proxy.AnimState:SetMultColour(0, 1, 0, 0.8)
 
                     local current_bank = proxy.AnimState:GetCurrentBankName()
-                    if item.anim and item.anim ~= "" then
-                        if item.bank and item.bank ~= current_bank then
-                            -- 如果状态不一致，强制覆盖为存档记录的 Build 和 Bank
-                            if item.build then
-                                proxy.AnimState:SetBuild(item.build)
-                            end
-                            proxy.AnimState:SetBank(item.bank)
+                    local bank = item.bank
+                    local build = item.build
+                    local anim = item.anim
+
+                    -- 对栅栏类的修复
+                    if proxy and proxy:HasTag("fence") then
+
+                        if not build or build == "" then
+                            build = item.prefab
+                            if item.prefab == "fence_junk" then build = "fence_junk_build" end
                         end
-                        proxy.AnimState:PlayAnimation(item.anim)
+
+                        if not anim or anim == "" then
+                            anim = "idle"
+                        end
+
+                        local rot = item.rotation or 0
+                        local rot_enum = math.floor((math.floor(rot + 0.5) / 45) % 8)
+                        
+                        -- 偶数角度为纵向(narrow)，奇数角度为横向(wide)
+                        if rot_enum % 2 == 0 then
+                            if item.prefab == "fence_junk" then
+                                bank = "fence_thin_junk"
+                            else
+                                bank = item.prefab .. "_thin"
+                            end
+                        else
+                            bank = item.prefab
+                        end
+                    end
+
+                    if anim and anim ~= "" then 
+                        if (bank and bank ~= "" and bank ~= current_bank) or (proxy:HasTag("fence")) then
+                            if build and build ~= "" then
+                                proxy.AnimState:SetBuild(build)
+                            end
+                            if bank and bank ~= "" then
+                                proxy.AnimState:SetBank(bank)
+                            end
+                        end
+                        proxy.AnimState:PlayAnimation(anim)
                     end
                 end
                 
