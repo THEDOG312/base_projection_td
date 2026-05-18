@@ -1,8 +1,6 @@
 local SPACING_DICT = require("utils/spacing")
-local Upvaluehelper = require("utils/base_projection_upvaluehelper")
 local valid_prefab = {}
-local unknown_anim_prefabs = { singingshell_octave3 = true, singingshell_octave4 = true, singingshell_octave5 = true }
-local modprefabinitfns = Upvaluehelper.GetUpvalue(RegisterPrefabsImpl, "modprefabinitfns")
+local unknown_anim_prefabs = { mighty_gym = true, singingshell_octave3 = true, singingshell_octave4 = true, singingshell_octave5 = true }
 
 local function anchor_fn()
     local inst = CreateEntity()
@@ -28,35 +26,23 @@ local function anchor_fn()
         end
     end
 
-    -- 同步颜色
-    local _RealAnimState = inst.AnimState
-    local AnimStateWrapper = {}
-    setmetatable(AnimStateWrapper, {
-        __index = function(t, k)
-            local val = _RealAnimState[k]
-            if type(val) == "function" then
-                return function(_, ...)
-                    if (k == "SetAddColour" or k == "SetMultColour" or k == "SetLightOverride" or k == "PlayAnimation") then
-                        if inst.proxy_ent and inst.proxy_ent:IsValid() and inst.proxy_ent.AnimState then
-                            inst.proxy_ent.AnimState[k](inst.proxy_ent.AnimState, ...)
-                        end
-                    end
-                    return val(_RealAnimState, ...)
-                end
-            end
-            return val
-        end
-    })
-    inst.AnimState = AnimStateWrapper
-
     inst.AnimState:SetBuild("unknown_prefab")
     inst.AnimState:SetBank("unknown_prefab")
     inst.AnimState:PlayAnimation('idle')
 
+    --inst.AnimState:SetBank("boat_01")
+    --inst.AnimState:SetBuild("boat_test")
+    --inst.AnimState:PlayAnimation("idle_full")
+
+    inst.AnimState:SetMultColour(0, 1, 0, 0.8)
+    --inst.Transform:SetScale(0.35, 0.35, 0.35)
+
     local label = inst.entity:AddLabel()
+
     label:SetFontSize(18)
     label:SetFont(BODYTEXTFONT)
     label:SetWorldOffset(0, 1.5, 0)
+
     label:SetColour(1, 1, 0)
     label:Enable(false)
     inst.label = label
@@ -64,174 +50,69 @@ local function anchor_fn()
 
     function inst:SetPreview(item)
         self.record_item = item
-        self.record_name = item.name
-
-        self.AnimState:SetBuild("unknown_prefab")
-        self.AnimState:SetBank("unknown_prefab")
-        _RealAnimState:SetMultColour(0, 0, 0, 0) 
-
-        -- 清理上一次的
-        if self.proxy_ent and self.proxy_ent:IsValid() then
-            self.proxy_ent:Remove()
-            self.proxy_ent = nil
-        end
-
-        -- 模拟生成这个物品
-        if Prefabs and Prefabs[item.prefab] then
-
-            -- 临时屏蔽其它模组的AddPrefabPostInit（还有一个PrefabPostInitAny，用的较少，暂时不屏蔽）
-            local _modprefabinitfns = modprefabinitfns[item.prefab]
-            modprefabinitfns[item.prefab] = {}
-            local proxy = SpawnPrefab(item.prefab)
-            modprefabinitfns[item.prefab] = _modprefabinitfns
-
-            if proxy and proxy:IsValid() then
-
-                -- 去除定时任务和唤醒事件
-                if proxy.CancelAllPendingTasks then
-                    proxy:CancelAllPendingTasks()
-                end
-                proxy.OnEntityWake = nil
-                proxy.OnEntitySleep = nil
-
-                -- 去除StateGraph
-                if proxy.ClearStateGraph then
-                    proxy:ClearStateGraph()
-                end
-
-                -- 去除AI 逻辑
-                if proxy.SetBrain then
-                    proxy:SetBrain(nil)
-                end
-
-                -- 禁音处理
-                if proxy.SoundEmitter then
-                    proxy.SoundEmitter:KillAllSounds()
-                end
-
-                -- 去除物理碰撞、光源和地图图标
-                if proxy.Physics then proxy.Physics:SetActive(false) end
-                if proxy.Light then proxy.Light:Enable(false) end
-                if proxy.MiniMapEntity then proxy.MiniMapEntity:SetEnabled(false) end
-
-                proxy:RemoveTag("iswet")
-                proxy:RemoveTag("wet")
-
-                proxy:AddTag("FX")
-                proxy:AddTag("NOCLICK")
-                proxy:AddTag("CLASSIFIED")
-                proxy.persists = false
-
-                -- 设置投影的绿色
-                if proxy.AnimState then
-                    proxy.AnimState:SetMultColour(0, 1, 0, 0.8)
-
-                    local current_bank = proxy.AnimState:GetCurrentBankName()
-                    local bank = item.bank
-                    local build = item.build
-                    local anim = item.anim
-
-                    -- 对栅栏类的修复
-                    if proxy and proxy:HasTag("fence") then
-
-                        if not build or build == "" then
-                            build = item.prefab
-                            if item.prefab == "fence_junk" then build = "fence_junk_build" end
-                        end
-
-                        if not anim or anim == "" then
-                            anim = "idle"
-                        end
-
-                        local rot = item.rotation or 0
-                        local rot_enum = math.floor((math.floor(rot + 0.5) / 45) % 8)
-
-                        -- 偶数角度为纵向(narrow)，奇数角度为横向(wide)
-                        if rot_enum % 2 == 0 then
-                            if item.prefab == "fence_junk" then
-                                bank = "fence_thin_junk"
-                            else
-                                bank = item.prefab .. "_thin"
-                            end
-                        else
-                            bank = item.prefab
-                        end
+        local build = item.build
+        if build and item.bank and item.anim and Prefabs and Prefabs[item.prefab] then
+            self.AnimState:SetBuild(build)
+            if self.AnimState:GetBuild() ~= build then
+                local dump = SpawnPrefab(item.prefab)
+                if dump and dump:IsValid() and dump.AnimState then
+                    build = dump.AnimState:GetBuild()
+                    if build then
+                        self.AnimState:SetBuild(build)
                     end
-
-                    if anim and anim ~= "" then
-                        if (bank and bank ~= "" and bank ~= current_bank) or (proxy:HasTag("fence")) then
-                            if build and build ~= "" then
-                                proxy.AnimState:SetBuild(build)
-                            end
-                            if bank and bank ~= "" then
-                                proxy.AnimState:SetBank(bank)
-                            end
-                        end
-                        proxy.AnimState:PlayAnimation(anim)
-                    end
+                    dump:Remove()
                 end
-
-                -- 同步坐标
-                local px, py, pz = self.Transform:GetWorldPosition()
-                proxy.Transform:SetPosition(px, py, pz)
-
-                self.proxy_ent = proxy
+            end
+            if self.AnimState:GetBuild() == build then
+                self.AnimState:SetBank(item.bank)
+                self.AnimState:PlayAnimation(item.anim)
+                if unknown_anim_prefabs[self.record_item.prefab] then
+                    self:SetAnim(false)
+                else
+                    self:SetAnim(true)
+                end
+                if not BSPJ.DATA.SHOW_NAME then
+                    return
+                end
+            else
+                self.AnimState:SetBuild("unknown_prefab")
             end
         end
-
-        if self.proxy_ent and not unknown_anim_prefabs[item.prefab] then
-            self:SetAnim(true)
-        else
-            self:SetAnim(false)
-        end
-
-        if BSPJ.DATA.SHOW_NAME then
-            self.label:Enable(true)
-            self.label:SetText(item.name)
-        else
-            self.label:Enable(false)
-        end
+        self.label:Enable(true)
+        self.label:SetText(item.name)
+        self.record_name = item.name
     end
 
     function inst:SetAnim(valid)
         self.is_anim_valid = true
         local item = self.record_item
-
-        if valid and self.proxy_ent and self.proxy_ent:IsValid() then
+        if valid then
             local scale = item.scale or { 1, 1, 1 }
-            self.proxy_ent.Transform:SetScale(scale[1], scale[2], scale[3])
-
+            self.Transform:SetScale(scale[1], scale[2], scale[3])
             if item.rotation and item.rotation ~= 0 then
-                self.proxy_ent.Transform:SetRotation(item.rotation or 0)
+                if math.fmod(item.rotation, 60) == 0 then
+                    self.Transform:SetSixFaced()
+                else
+                    self.Transform:SetEightFaced()
+                end
+                self.Transform:SetRotation(item.rotation or 0)
             end
-
-            -- 修复 Layer 压扁问题
-            if item.layer and item.layer == 5 and self.proxy_ent.AnimState then
-                self.proxy_ent.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)
-                self.proxy_ent.AnimState:SetLayer(item.layer)
-                self.proxy_ent.AnimState:SetSortOrder(5)
+            if item.layer and item.layer ~= 6 then
+                self.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)
+                self.AnimState:SetLayer(item.layer)
+                self.AnimState:SetSortOrder(5)
             end
-            self.proxy_ent:Show()
         else
-            -- 兜底显示逻辑
-            _RealAnimState:SetMultColour(1, 1, 1, 1)
             self.AnimState:SetBuild("unknown_prefab")
             self.AnimState:SetBank("unknown_prefab")
             self.AnimState:PlayAnimation('idle')
-            if self.proxy_ent and self.proxy_ent:IsValid() then
-                self.proxy_ent:Hide()
+            self.label:Enable(true)
+            self.record_name = item.name
+            if BSPJ.DATA.ORDER_TIPS and self.record_spacing then
+                self.label:SetText(item.name .. '\n' .. tostring(self.record_spacing))
+            else
+                self.label:SetText(item.name)
             end
-        end
-
-        self.label:Enable(true)
-        if BSPJ.DATA.ORDER_TIPS and self.record_spacing then
-            self.label:Enable(true)
-            self.label:SetText(item.name .. '\n' .. tostring(self.record_spacing))
-        elseif BSPJ.DATA.SHOW_NAME then
-            self.label:Enable(true)
-            self.label:SetText(item.name)
-        else
-            self.label:Enable(false)
         end
     end
 
@@ -263,9 +144,6 @@ local function anchor_fn()
             dump:Remove()
             if valid_pos then
                 self.Transform:SetPosition(x, y, z)
-                if self.proxy_ent and self.proxy_ent:IsValid() then
-                    self.proxy_ent.Transform:SetPosition(x, y, z)
-                end
                 self:DoTaskInTime(0, function()
                     local entities = TheSim:GetEntitiesAtScreenPoint(TheSim:GetScreenPos(x, y, z))
                     local valid_anim = false
@@ -280,9 +158,6 @@ local function anchor_fn()
                     end
                     valid_prefab[item.prefab] = valid_anim
                     self.Transform:SetPosition(dx, dy, dz)
-                    if self.proxy_ent and self.proxy_ent:IsValid() then
-                        self.proxy_ent.Transform:SetPosition(dx, dy, dz)
-                    end
                 end)
             else
                 self:_valid(dx, dy, dz, try_time + 1)
@@ -308,16 +183,16 @@ local function anchor_fn()
 
     function inst:UpdatePos(x, y, z)
         self.Transform:SetPosition(x, y, z)
-        if self.proxy_ent and self.proxy_ent:IsValid() then
-            self.proxy_ent.Transform:SetPosition(x, y, z)
-        end
+        --if BSPJ.DATA.ANIM_VALID then
+        --    self:ValidAnim(x, y, z)
+        --else
+        --    if unknown_anim_prefabs[self.record_item.prefab] then
+        --        self:SetAnim(false)
+        --    else
+        --        self:SetAnim(true)
+        --    end
+        --end
     end
-
-    inst:ListenForEvent("onremove", function(_inst)
-        if _inst.proxy_ent and _inst.proxy_ent:IsValid() then
-            _inst.proxy_ent:Remove()
-        end
-    end)
 
     return inst
 end
@@ -449,10 +324,8 @@ local function record_helper_fn()
                 local sx, sy, sz = anchor.Transform:GetScale()
                 local rotation = anchor.Transform:GetFacingRotation()
                 local layer = anchor.AnimState:GetLayer()
-                local clean_name = anchor.GetBasicDisplayName and anchor:GetBasicDisplayName() or anchor:GetDisplayName()
-
                 table.insert(record, {
-                    name = clean_name, prefab = anchor.prefab, x = x, y = y, z = z,
+                    name = anchor:GetDisplayName(), prefab = anchor.prefab, x = x, y = y, z = z,
                     build = build, bank = bank, anim = anim, scale = { sx, sy, sz },
                     rotation = rotation, layer = layer
                 })
@@ -515,23 +388,30 @@ local function play_helper_fn()
         self.anchors = {}
         local bx, bz = record.x, record.z
         local max_spacing, min_spacing
-        -- 使用客机环境生成Prefab
-        local _ismastersim = TheWorld.ismastersim
-        TheWorld.ismastersim = false
         for idx, item in ipairs(record.data) do
             local anchor = SpawnPrefab('base_anchor')
             anchor:SetPreview(item)
             anchor.record_prefab = item.prefab
             anchor.record_idx = idx
-            -- 动态同步官方体积
-            local spacing = nil
-
-            if AllRecipes and AllRecipes[item.prefab] and AllRecipes[item.prefab].min_spacing then
-                spacing = AllRecipes[item.prefab].min_spacing
-            end
-            -- 兜底读取SPACING_DICT
+            local spacing = SPACING_DICT[item.prefab]
             if not spacing then
-                spacing = SPACING_DICT[item.prefab]
+                if AllRecipes and AllRecipes[item.prefab] and AllRecipes[item.prefab].min_spacing then
+                    local dump = SpawnPrefab(item.prefab)
+                    if dump:HasTag('structure') then
+                        spacing = AllRecipes[item.prefab].min_spacing
+                    end
+                    if dump and dump:IsValid() then
+                        dump:Remove()
+                    end
+                    --else
+                    --    local dump = SpawnPrefab('dug_' .. item.prefab)
+                    --    if dump and dump.replica and dump.replica.inventoryitem then
+                    --        spacing = dump.replica.inventoryitem:DeploySpacingRadius()
+                    --    end
+                    --    if dump and dump:IsValid() then
+                    --        dump:Remove()
+                    --    end
+                end
             end
             if spacing then
                 if not max_spacing or spacing > max_spacing then
@@ -544,14 +424,13 @@ local function play_helper_fn()
             end
             self.anchors[anchor] = { dx = item.x - bx, dz = item.z - bz }
         end
-        TheWorld.ismastersim = _ismastersim
         if BSPJ.DATA.ORDER_TIPS then
             for anchor in pairs(self.anchors) do
                 if anchor.record_spacing then
                     anchor.spacing_color = (anchor.record_spacing - min_spacing) / (max_spacing - min_spacing) * 0.9 + 0.1
-                    anchor.AnimState:SetAddColour(anchor.spacing_color or 0, 0, 0, 0)
+                    anchor.AnimState:SetAddColour(anchor.spacing_color, 0, 0, 0)
                     anchor.label:Enable(true)
-                    if BSPJ.DATA.SHOW_NAME then
+                    if anchor.record_name then
                         anchor.label:SetText(anchor.record_name .. '\n' .. tostring(anchor.record_spacing))
                     else
                         anchor.label:SetText(tostring(anchor.record_spacing))

@@ -7,7 +7,7 @@ description = [[
 理论上兼容所有模组
 ]]
 author = "NoMu，冰冰羊，THEDOG"
-version = "2.0.61"
+version = "2.0.7"
 
 folder_name = folder_name or "base_projection"
 if not folder_name:find("workshop-") then
@@ -46,6 +46,16 @@ configuration_options = {
         },
         default = "zh",
     },
+{
+    name = "projection_version",
+    label = "投影算法版本 (Projection Version)",
+    hover = "新版效果更好，老版稳定报错了换老版/If the mod reports an error, please switch to the older version.",
+    options = {
+        { description = "新版/new", data = "new" },
+        { description = "老版/older", data = "old" },
+    },
+    default = "new",
+},
     {
         name = "key_toggle_record",
         label = "基地录入快捷键（Base Record Shortcut）",
